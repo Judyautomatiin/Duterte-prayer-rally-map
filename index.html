@@ -279,49 +279,8 @@
         };
         legend.addTo(map);
         
-        // Sample data to initialize the map
-        // In a real application, this would be loaded from a server
-        let rallies = [
-            {
-                id: 1,
-                name: "Global Prayer Day",
-                date: "2025-03-15",
-                location: "New York, USA",
-                description: "A worldwide day of prayer for peace and healing.",
-                organizer: "World Prayer Network",
-                contact: "contact@wpn.org",
-                attendees: 5000,
-                lat: 40.7128,
-                lng: -74.0060,
-                media: []
-            },
-            {
-                id: 2,
-                name: "Prayer for Unity",
-                date: "2025-03-20",
-                location: "London, UK",
-                description: "Gathering to pray for unity and reconciliation across nations.",
-                organizer: "Unity Prayer Alliance",
-                contact: "info@unityprayer.org",
-                attendees: 3500,
-                lat: 51.5074,
-                lng: -0.1278,
-                media: []
-            },
-            {
-                id: 3,
-                name: "Dawn Prayer Meeting",
-                date: "2025-03-10",
-                location: "Sydney, Australia",
-                description: "Early morning prayer rally focusing on revival and spiritual awakening.",
-                organizer: "Australian Prayer Network",
-                contact: "prayer@apn.au",
-                attendees: 2000,
-                lat: -33.8688,
-                lng: 151.2093,
-                media: []
-            }
-        ];
+// Rally data array - will be populated by user submissions
+let rallies = [];
         
         // DOM Elements
         const addRallyBtn = document.getElementById('add-rally-btn');
