@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Prayer Rally Map</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        #map {
+            height: 80vh;
+            width: 100%;
+        }
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        h1 {
+            margin: 0;
+            color: #2c3e50;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 8px 16px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+        }
+        .modal-content {
+            position: relative;
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            width: 80%;
+            max-width: 600px;
+            border-radius: 8px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        input, textarea, select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        label {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        .filter-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .marker-popup img {
+            max-width: 100%;
+            max-height: 150px;
+            margin-top: 10px;
+        }
+        .marker-popup video {
+            max-width: 100%;
+            max-height: 200px;
+            margin-top: 10px;
+        }
+        .info-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+        }
+        .media-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .media-item {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .media-item img, .media-item video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .remove-media {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .legend {
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            line-height: 24px;
+            color: #555;
+        }
+        .legend i {
+            width: 18px;
+            height: 18px;
+            float: left;
+            margin-right: 8px;
+            opacity: 0.7;
+        }
+        .date-filter {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <h1>Global Prayer Rally Map</h1>
+            <button id="add-rally-btn">Add Prayer Rally</button>
+        </header>
+        
+        <div class="info-box">
+            Welcome to the Global Prayer Rally Map! View prayer rallies around the world, filter by date, and contribute by adding new events.
+        </div>
+        
+        <div class="date-filter">
+            <label for="date-filter">Filter by date:</label>
+            <input type="date" id="date-filter">
+            <button id="clear-filter">Clear Filter</button>
+        </div>
+        
+        <div id="map"></div>
+        
+        <div id="add-rally-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-btn">&times;</span>
+                <h2>Add Prayer Rally</h2>
+                <form id="rally-form">
+                    <div class="form-group">
+                        <label for="rally-name">Event Name*</label>
+                        <input type="text" id="rally-name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="rally-date">Date*</label>
+                        <input type="date" id="rally-date" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="rally-location">Location*</label>
+                        <input type="text" id="rally-location" placeholder="Search for a location" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="rally-description">Description*</label>
+                        <textarea id="rally-description" rows="4" required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="rally-organizer">Organizer</label>
+                        <input type="text" id="rally-organizer">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="rally-contact">Contact Information</label>
+                        <input type="text" id="rally-contact" placeholder="Website or email">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="rally-attendees">Estimated Attendees</label>
+                        <input type="number" id="rally-attendees" min="0">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Media Files (Images/Videos)</label>
+                        <input type="file" id="rally-media" multiple accept="image/*,video/*">
+                        <div class="media-preview" id="media-preview"></div>
+                    </div>
+                    
+                    <button type="submit">Submit Rally</button>
+                </form>
+            </div>
+        </div>
+        
+        <div id="view-rally-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-btn">&times;</span>
+                <div id="rally-details"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script>
+        // Initialize the map
+        const map = L.map('map').setView([20, 0], 2);
+        
+        // Add tile layer (OpenStreetMap)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        
+        // Add legend
+        const legend = L.control({position: 'bottomright'});
+        legend.onAdd = function (map) {
+            const div = L.DomUtil.create('div', 'legend');
+            div.innerHTML = `
+                <h4>Legend</h4>
+                <i style="background: #3498db"></i> Recent (Last 7 days)<br>
+                <i style="background: #2ecc71"></i> Upcoming<br>
+                <i style="background: #e74c3c"></i> Past
+            `;
+            return div;
+        };
+        legend.addTo(map);
+        
+        // Sample data to initialize the map
+        // In a real application, this would be loaded from a server
+        let rallies = [
+            {
+                id: 1,
+                name: "Global Prayer Day",
+                date: "2025-03-15",
+                location: "New York, USA",
+                description: "A worldwide day of prayer for peace and healing.",
+                organizer: "World Prayer Network",
+                contact: "contact@wpn.org",
+                attendees: 5000,
+                lat: 40.7128,
+                lng: -74.0060,
+                media: []
+            },
+            {
+                id: 2,
+                name: "Prayer for Unity",
+                date: "2025-03-20",
+                location: "London, UK",
+                description: "Gathering to pray for unity and reconciliation across nations.",
+                organizer: "Unity Prayer Alliance",
+                contact: "info@unityprayer.org",
+                attendees: 3500,
+                lat: 51.5074,
+                lng: -0.1278,
+                media: []
+            },
+            {
+                id: 3,
+                name: "Dawn Prayer Meeting",
+                date: "2025-03-10",
+                location: "Sydney, Australia",
+                description: "Early morning prayer rally focusing on revival and spiritual awakening.",
+                organizer: "Australian Prayer Network",
+                contact: "prayer@apn.au",
+                attendees: 2000,
+                lat: -33.8688,
+                lng: 151.2093,
+                media: []
+            }
+        ];
+        
+        // DOM Elements
+        const addRallyBtn = document.getElementById('add-rally-btn');
+        const addRallyModal = document.getElementById('add-rally-modal');
+        const viewRallyModal = document.getElementById('view-rally-modal');
+        const closeBtns = document.querySelectorAll('.close-btn');
+        const rallyForm = document.getElementById('rally-form');
+        const mediaInput = document.getElementById('rally-media');
+        const mediaPreview = document.getElementById('media-preview');
+        const dateFilter = document.getElementById('date-filter');
+        const clearFilterBtn = document.getElementById('clear-filter');
+        
+        // Media files to be uploaded
+        let selectedFiles = [];
+        
+        // Function to render markers on the map
+        function renderMarkers(filteredRallies = null) {
+            // Clear existing markers
+            map.eachLayer(layer => {
+                if (layer instanceof L.Marker) {
+                    map.removeLayer(layer);
+                }
+            });
+            
+            // Use either filtered rallies or all rallies
+            const ralliesToRender = filteredRallies || rallies;
+            
+            // Add markers for each rally
+            ralliesToRender.forEach(rally => {
+                // Determine marker color based on date
+                const rallyDate = new Date(rally.date);
+                const today = new Date();
+                const oneWeekAgo = new Date();
+                oneWeekAgo.setDate(today.getDate() - 7);
+                
+                let markerColor;
+                if (rallyDate > today) {
+                    markerColor = "#2ecc71"; // Upcoming (green)
+                } else if (rallyDate >= oneWeekAgo) {
+                    markerColor = "#3498db"; // Recent (blue)
+                } else {
+                    markerColor = "#e74c3c"; // Past (red)
+                }
+                
+                // Create custom icon
+                const icon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<svg width="30" height="30" viewBox="0 0 24 24">
+                            <path fill="${markerColor}" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+                          </svg>`,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 30]
+                });
+                
+                // Create marker
+                const marker = L.marker([rally.lat, rally.lng], {icon: icon}).addTo(map);
+                
+                // Format date for display
+                const formattedDate = new Date(rally.date).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                
+                // Add popup with basic info
+                marker.bindPopup(`
+                    <div class="marker-popup">
+                        <h3>${rally.name}</h3>
+                        <p><strong>Date:</strong> ${formattedDate}</p>
+                        <p><strong>Location:</strong> ${rally.location}</p>
+                        <button class="view-details" data-id="${rally.id}">View Details</button>
+                    </div>
+                `);
+                
+                // Add click event to view details button
+                marker.on('popupopen', () => {
+                    setTimeout(() => {
+                        const viewDetailsBtn = document.querySelector('.view-details');
+                        if (viewDetailsBtn) {
+                            viewDetailsBtn.addEventListener('click', (e) => {
+                                const rallyId = e.target.getAttribute('data-id');
+                                showRallyDetails(rallyId);
+                            });
+                        }
+                    }, 10);
+                });
+            });
+        }
+        
+        // Function to show rally details
+        function showRallyDetails(rallyId) {
+            const rally = rallies.find(r => r.id == rallyId);
+            if (!rally) return;
+            
+            // Format date for display
+            const formattedDate = new Date(rally.date).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            // Generate media HTML
+            let mediaHTML = '';
+            if (rally.media && rally.media.length > 0) {
+                mediaHTML = '<div class="rally-media">';
+                rally.media.forEach(media => {
+                    if (media.type === 'image') {
+                        mediaHTML += `<img src="${media.url}" alt="${rally.name}" />`;
+                    } else if (media.type === 'video') {
+                        mediaHTML += `
+                            <video controls>
+                                <source src="${media.url}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        `;
+                    }
+                });
+                mediaHTML += '</div>';
+            }
+            
+            // Populate details
+            document.getElementById('rally-details').innerHTML = `
+                <h2>${rally.name}</h2>
+                <p><strong>Date:</strong> ${formattedDate}</p>
+                <p><strong>Location:</strong> ${rally.location}</p>
+                <p><strong>Description:</strong> ${rally.description}</p>
+                <p><strong>Organizer:</strong> ${rally.organizer || 'Not specified'}</p>
+                <p><strong>Contact:</strong> ${rally.contact || 'Not specified'}</p>
+                <p><strong>Estimated Attendees:</strong> ${rally.attendees?.toLocaleString() || 'Not specified'}</p>
+                ${mediaHTML}
+            `;
+            
+            // Show modal
+            viewRallyModal.style.display = 'block';
+        }
+        
+        // Function to filter rallies by date
+        function filterRalliesByDate(date) {
+            if (!date) return rallies;
+            
+            return rallies.filter(rally => {
+                const rallyDate = new Date(rally.date);
+                rallyDate.setHours(0, 0, 0, 0);
+                
+                const filterDate = new Date(date);
+                filterDate.setHours(0, 0, 0, 0);
+                
+                return rallyDate.getTime() === filterDate.getTime();
+            });
+        }
+        
+        // Function to preview media files
+        function previewMedia(files) {
+            mediaPreview.innerHTML = '';
+            selectedFiles = Array.from(files);
+            
+            selectedFiles.forEach((file, index) => {
+                const mediaItem = document.createElement('div');
+                mediaItem.className = 'media-item';
+                
+                const removeBtn = document.createElement('div');
+                removeBtn.className = 'remove-media';
+                removeBtn.innerHTML = '×';
+                removeBtn.onclick = () => removeMedia(index);
+                
+                if (file.type.startsWith('image/')) {
+                    const img = document.createElement('img');
+                    img.src = URL.createObjectURL(file);
+                    mediaItem.appendChild(img);
+                } else if (file.type.startsWith('video/')) {
+                    const video = document.createElement('video');
+                    video.src = URL.createObjectURL(file);
+                    mediaItem.appendChild(video);
+                }
+                
+                mediaItem.appendChild(removeBtn);
+                mediaPreview.appendChild(mediaItem);
+            });
+        }
+        
+        // Function to remove media from preview
+        function removeMedia(index) {
+            selectedFiles.splice(index, 1);
+            previewMedia(selectedFiles);
+        }
+        
+        // Event Listeners
+        addRallyBtn.addEventListener('click', () => {
+            addRallyModal.style.display = 'block';
+        });
+        
+        closeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                addRallyModal.style.display = 'none';
+                viewRallyModal.style.display = 'none';
+            });
+        });
+        
+        window.addEventListener('click', (e) => {
+            if (e.target === addRallyModal) {
+                addRallyModal.style.display = 'none';
+            } else if (e.target === viewRallyModal) {
+                viewRallyModal.style.display = 'none';
+            }
+        });
+        
+        mediaInput.addEventListener('change', (e) => {
+            previewMedia(e.target.files);
+        });
+        
+        rallyForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            // Create a geocoder to convert address to coordinates
+            // In a real application, you would use a geocoding service API
+            // For this example, we'll use random coordinates near the entered location
+            const randomOffset = () => (Math.random() - 0.5) * 2;
+            
+            // Process media files (in a real app, these would be uploaded to a server)
+            const mediaUrls = selectedFiles.map(file => {
+                const type = file.type.startsWith('image/') ? 'image' : 'video';
+                // In a real app, this would be the URL returned by the server after upload
+                // For demo, we're using object URLs which are temporary
+                return {
+                    type,
+                    url: URL.createObjectURL(file)
+                };
+            });
+            
+            // Create new rally object
+            const newRally = {
+                id: rallies.length + 1,
+                name: document.getElementById('rally-name').value,
+                date: document.getElementById('rally-date').value,
+                location: document.getElementById('rally-location').value,
+                description: document.getElementById('rally-description').value,
+                organizer: document.getElementById('rally-organizer').value,
+                contact: document.getElementById('rally-contact').value,
+                attendees: parseInt(document.getElementById('rally-attendees').value) || 0,
+                // Generate random coordinates based on existing rallies for demo
+                // In a real app, these would come from geocoding the address
+                lat: rallies[0].lat + randomOffset(),
+                lng: rallies[0].lng + randomOffset(),
+                media: mediaUrls
+            };
+            
+            // Add to rallies array
+            rallies.push(newRally);
+            
+            // Refresh markers
+            renderMarkers();
+            
+            // Reset form
+            rallyForm.reset();
+            mediaPreview.innerHTML = '';
+            selectedFiles = [];
+            
+            // Close modal
+            addRallyModal.style.display = 'none';
+        });
+        
+        dateFilter.addEventListener('change', (e) => {
+            const filteredRallies = filterRalliesByDate(e.target.value);
+            renderMarkers(filteredRallies);
+        });
+        
+        clearFilterBtn.addEventListener('click', () => {
+            dateFilter.value = '';
+            renderMarkers();
+        });
+        
+        // Initialize map with markers
+        renderMarkers();
+        
+        // In a real application, you would add:
+        // 1. Server-side storage of rally data
+        // 2. User authentication
+        // 3. Moderation features for submitted content
+        // 4. Media file uploads to cloud storage
+        // 5. Proper geocoding of addresses
+        // 6. Data export/import capabilities
+        // 7. Advanced filtering options
+        // 8. Social sharing features
+    </script>
+</body>
+</html>
